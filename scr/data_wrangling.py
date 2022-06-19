@@ -30,7 +30,7 @@ id_vars_tuple = ("Country", "Gas", "Sector")
 value_vars_array = np.arange(1990, 2020, dtype=int).astype(str)
 emissions_df = pd.melt(emissions_df, id_vars=id_vars_tuple, value_vars=value_vars_array, var_name="Year", value_name="GHG Emissions")
 
-# drop all "Total..." sectors
+# drop all "Total..." sectors since they are redundant values
 emissions_df = emissions_df[(emissions_df['Sector'] != 'Total excluding LUCF') & (emissions_df['Sector'] != 'Total including LUCF')]
 
 # create Agg Sector column with "Energy" and "Non-energy" value
@@ -68,8 +68,14 @@ emissions_df['GHG Emissions'] = np.where(emissions_df['Sub-Energies Emissions'].
 emissions_df.drop(columns=['Sum Emissions', 'Sub-Energies Emissions'], inplace=True)
 emissions_df['Sector'] = np.where(emissions_df['Sector'] == 'Energy', 'Energy Unspecified', emissions_df['Sector'])
 
+# drop all "All GHG" sectors since they are redundant values
+emissions_df = emissions_df[(emissions_df['Gas'] != 'All GHG')]
+
 # change to proper data type
 emissions_df = emissions_df.astype({'Country':'category', 'Gas':'category', 'Agg Sector':'category', 'Sector':'category', 'Year':'int32'})
+
+# change columns name to we can upload it to Google BigQuery
+emissions_df.columns = ['country', 'gas', 'agg_sector', 'sector', 'year', 'ghg_emissions']
 
 # save processed data file to data/processed folder
 emissions_df.to_csv("../data/processed/historical_ghg_emissions_processed.csv", index=False)
@@ -100,7 +106,7 @@ def process_socioecon_data(df):
 
     df = df[(df['Country Code'] != 'EUU') & (df['Country Code'] != 'WORLD')]
 
-    df.loc[df['Country Code'] == 'PRK', 'Country Name'] = 'Korea, Dem. People Rep.'
+    df.loc[df['Country Code'] == 'PRK', 'Country Name'] = 'North Korea'
 
     return df
 
@@ -117,6 +123,9 @@ socioecon_df = gdp_df.merge(pop_df, how='inner', on=['Country Name', 'Country Co
 
 # change to proper data type
 socioecon_df = socioecon_df.astype({'Country Name':'category', 'Country Code':'category', 'Year':'int32'})
+
+# change columns name to we can upload it to Google BigQuery
+socioecon_df.columns = ['country_name', 'country_code', 'year', 'gdp', 'population']
 
 # save processed data file to data/processed folder
 socioecon_df.to_csv("../data/processed/socioeconomics_processed.csv", index=False)
